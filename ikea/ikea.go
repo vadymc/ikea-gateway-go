@@ -8,6 +8,7 @@ import (
 	gocoap "github.com/dustin/go-coap"
 	"github.com/eriklupander/tradfri-go/model"
 	"github.com/vadymc/ikea-gateway-go/m/ikea/coap"
+	log "github.com/sirupsen/logrus"
 )
 
 type ITradfriClient interface {
@@ -47,7 +48,7 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 
 	resp, err := tc.Call(tc.dtlsclient.BuildGETMessage("/15004"))
 	if err != nil {
-		fmt.Println("Unable to call Trådfri: " + err.Error())
+		log.WithError(err).Error("Unable to call Trådfri")
 		return groupIds, err
 	}
 

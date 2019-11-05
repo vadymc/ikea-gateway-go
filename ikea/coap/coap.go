@@ -1,10 +1,10 @@
 package coap
 
 import (
-	"fmt"
 	"os"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/dustin/go-coap"
 	"github.com/eriklupander/dtls"
 )
@@ -42,15 +42,15 @@ func (dc *DtlsClient) connect() {
 		Addr:             dc.gatewayAddress,
 		Identity:         dc.clientID,
 		HandshakeTimeout: time.Second * 15}
-	fmt.Printf("Connecting to peer at %v\n", dc.gatewayAddress)
+		log.WithField("GW address", dc.gatewayAddress).Info("Connecting to peer")
 
 	dc.peer, err = listener.AddPeerWithParams(peerParams)
 	if err != nil {
-		fmt.Printf("Unable to connect to Gateway at %v: %v\n", dc.gatewayAddress, err.Error())
+		log.WithField("GW address", dc.gatewayAddress).WithError(err).Error("Unable to connect to Gateway")
 		os.Exit(1)
 	}
 	dc.peer.UseQueue(true)
-	fmt.Printf("DTLS connection established to %v\n", dc.gatewayAddress)
+	log.WithField("GW address", dc.gatewayAddress).Info("DTLS connection established")
 }
 
 // Call writes the supplied coap.Message to the peer

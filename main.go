@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
 
 	gw "github.com/vadymc/ikea-gateway-go/m/gateway-handler"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -49,7 +49,8 @@ func main() {
 
 func authenticate(gatewayAddress, clientID, psk string) {
 	if len(clientID) < 1 || len(psk) < 10 {
-		fail("Both clientID and psk args must be specified when performing key exchange")
+		log.Error("Both clientID and psk args must be specified when performing key exchange")
+		os.Exit(1)
 	}
 
 	done := make(chan bool)
@@ -57,7 +58,7 @@ func authenticate(gatewayAddress, clientID, psk string) {
 	go func() {
 		select {
 		case <-time.After(time.Second * 5):
-			fmt.Println("(Please note that the key exchange may appear to be stuck at \"Connecting to peer at\" if the PSK from the bottom of your Gateway is not entered correctly.)")
+			log.Info("(Please note that the key exchange may appear to be stuck at \"Connecting to peer at\" if the PSK from the bottom of your Gateway is not entered correctly.)")
 		case <-done:
 		}
 	}()
@@ -71,10 +72,5 @@ func authenticate(gatewayAddress, clientID, psk string) {
 		fail(err.Error())
 	}
 	os.Setenv(ikeaGwPSK, authToken.Token)
-	fmt.Println("Have set PSK token to environment variable, make sure it is being saved between sessions", ikeaGwPSK)
-}
-
-func fail(msg string) {
-	fmt.Println(msg)
-	os.Exit(1)
+	log.WithField("env var", ikeaGwPSK).Info("Have set PSK token to environment variable, make sure it is being saved between sessions")
 }
