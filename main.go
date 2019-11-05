@@ -70,7 +70,8 @@ func authenticate(gatewayAddress, clientID, psk string) {
 	if err != nil {
 		fail(err.Error())
 	}
-	fmt.Println("Set token to environment variable:", authToken.Token)
+	os.Setenv(ikeaGwPSK, authToken.Token)
+	fmt.Println("Have set PSK token to environment variable, make sure it is being saved between sessions", ikeaGwPSK)
 }
 
 func fail(msg string) {
