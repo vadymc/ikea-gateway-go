@@ -69,7 +69,8 @@ func authenticate(gatewayAddress, clientID, psk string) {
 
 	authToken, err := dtlsClient.AuthExchange(clientID)
 	if err != nil {
-		fail(err.Error())
+		log.WithError(err).Error("Failed AuthExchange")
+		os.Exit(1)
 	}
 	os.Setenv(ikeaGwPSK, authToken.Token)
 	log.WithField("env var", ikeaGwPSK).Info("Have set PSK token to environment variable, make sure it is being saved between sessions")
