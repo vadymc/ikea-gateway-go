@@ -38,25 +38,29 @@ func (s *MockDBStorage) SaveGroupState(l []LightState) {
 
 func TestLightStateChange(t *testing.T) {
 	testData := []struct {
+		name string
 		data []string
 	}{
-		{[]string{"bulb_on.json", "bulb_off.json"}},
-		{[]string{"brightness_low.json", "brightness_high.json"}},
-		{[]string{"rgb_warm.json", "rgb_white.json"}},
+		{"bulbs", []string{"bulb_on.json", "bulb_off.json"}},
+		{"brightness", []string{"brightness_low.json", "brightness_high.json"}},
+		{"rgb", []string{"rgb_warm.json", "rgb_white.json"}},
 	}
 
 	tc := new(MockTradfriClient)
 	for _, td := range testData {
-		s := MockDBStorage{}
-		h := NewHandler(tc, &s)
-		// initial state
-		tc.deviceJsonPath = td.data[0]
-		h.PollAndSaveDevicesState()
+		t.Run(td.name, func(t *testing.T) {
+			s := MockDBStorage{}
+			h := NewHandler(tc, &s)
 
-		// updated state
-		tc.deviceJsonPath = td.data[1]
-		h.PollAndSaveDevicesState()
+			// initial state
+			tc.deviceJsonPath = td.data[0]
+			h.PollAndSaveDevicesState()
 
-		assert.Equal(t, 1, s.invocationCount, td.data[1])
+			// updated state
+			tc.deviceJsonPath = td.data[1]
+			h.PollAndSaveDevicesState()
+
+			assert.Equal(t, 1, s.invocationCount)
+		})
 	}
 }
