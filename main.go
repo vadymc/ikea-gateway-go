@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	gw "github.com/vadymc/ikea-gateway-go/m/gateway-handler"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -30,7 +30,7 @@ func main() {
 	}
 
 	tc := ikea.NewTradfriClient(gwAddr, clientID, psk)
-	storage := &gw.DBStorage{}
+	storage := gw.NewDBStorage()
 	h := gw.NewHandler(tc, storage)
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {

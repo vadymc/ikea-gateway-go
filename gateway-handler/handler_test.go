@@ -46,11 +46,11 @@ func TestLightStateChange(t *testing.T) {
 		{"rgb", []string{"rgb_warm.json", "rgb_white.json"}},
 	}
 
-	tc := new(MockTradfriClient)
+	tc := &MockTradfriClient{}
 	for _, td := range testData {
 		t.Run(td.name, func(t *testing.T) {
-			s := MockDBStorage{}
-			h := NewHandler(tc, &s)
+			s := &MockDBStorage{}
+			h := NewHandler(tc, s)
 
 			// initial state
 			tc.deviceJsonPath = td.data[0]
