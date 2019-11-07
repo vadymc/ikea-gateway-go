@@ -24,7 +24,8 @@ func NewFirebaseStorage() *FirebaseStorage {
 }
 
 func (s *FirebaseStorage) SaveGroupState(lightGroup []LightState) {
-	_, _, err := s.statDataCollection.Add(context.Background(), map[string][]LightState{"lightState": lightGroup})
+	r, _, err := s.statDataCollection.Add(context.Background(), map[string][]LightState{"lightState": lightGroup})
+	log.WithField("Document ID", r.ID).Info("Stored update to firebase")
 	if err != nil {
 		log.WithError(err).WithField("light Group", lightGroup).Error("Failed to insert document")
 	}
