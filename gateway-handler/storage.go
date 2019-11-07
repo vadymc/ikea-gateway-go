@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	dbPath            = "dbPath"
+	dbPath            = "IKEA_DB_PATH"
 	insertEventSQL    = "insert into event default values"
 	insertStatDataSQL = "insert into stat_data (event_id, group_name, power, dimmer, rgb) values (?, ?, ?, ?, ?)"
 )

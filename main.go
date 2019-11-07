@@ -13,9 +13,9 @@ import (
 const (
 	clientID = "111-222-111"
 
-	ikeaGwIP           = "ikeaGwIP"
-	ikeaGwPSK          = "ikeaGwPSK"
-	ikeaGwSecurityCode = "ikeaGwSecurityCode" // from the back of gateway device
+	ikeaGwIP           = "IKEA_GW_IP"
+	ikeaGwPSK          = "IKEA_GW_PSK"
+	ikeaGwSecurityCode = "IKEA_GW_SECURITY_CODE" // from the back of gateway device
 )
 
 func main() {
