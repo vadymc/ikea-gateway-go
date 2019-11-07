@@ -43,7 +43,7 @@ func TestLightStateChange(t *testing.T) {
 	}{
 		{"bulbs", []string{"bulb_on.json", "bulb_off.json"}},
 		{"brightness", []string{"brightness_low.json", "brightness_high.json"}},
-		{"rgb", []string{"rgb_warm.json", "rgb_white.json"}},
+		{"RGB", []string{"rgb_warm.json", "rgb_white.json"}},
 	}
 
 	tc := &MockTradfriClient{}

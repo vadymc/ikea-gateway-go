@@ -11,7 +11,7 @@ import (
 const (
 	dbPath            = "IKEA_DB_PATH"
 	insertEventSQL    = "insert into event default values"
-	insertStatDataSQL = "insert into stat_data (event_id, group_name, power, dimmer, rgb) values (?, ?, ?, ?, ?)"
+	insertStatDataSQL = "insert into stat_data (event_id, group_name, power, dimmer, rgb, date_created) values (?, ?, ?, ?, ?, ?)"
 )
 
 type IStorage interface {
@@ -62,13 +62,12 @@ func (s *DBStorage) SaveGroupState(lightGroup []LightState) {
 		}
 		eventId, _ := r.LastInsertId()
 		for _, ls := range lightGroup {
-			_, err := s.insertStatDataStmt.Exec(eventId, ls.group, ls.power, ls.dimmer, ls.rgb)
+			_, err := s.insertStatDataStmt.Exec(eventId, ls.Group, ls.Power, ls.Dimmer, ls.RGB, ls.Date)
 			if err != nil {
 				log.WithError(err).WithField("LightState", ls).Fatal("Failed to insert stat_data")
 				return err
 			}
 		}
-		log.WithField("lightGroup", lightGroup).WithField("eventId", eventId).Info("Saved group state")
 		return nil
 	})
 	if err != nil {

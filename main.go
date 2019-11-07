@@ -30,8 +30,9 @@ func main() {
 	}
 
 	tc := ikea.NewTradfriClient(gwAddr, clientID, psk)
-	storage := gw.NewDBStorage()
-	h := gw.NewHandler(tc, storage)
+	dbStorage := gw.NewDBStorage()
+	firebaseStorage := gw.NewFirebaseStorage()
+	h := gw.NewHandler(tc, dbStorage, firebaseStorage)
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		for {

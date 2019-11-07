@@ -2,26 +2,28 @@ package gateway_handler
 
 import (
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
 )
 
 type LightState struct {
-	power  int
-	dimmer int
-	rgb    string
-	group  string
+	Power  int
+	Dimmer int
+	RGB    string
+	Group  string
+	Date   time.Time
 }
 
 type Handler struct {
 	tc ikea.ITradfriClient
-	s  IStorage
+	s  []IStorage
 	m  map[string][]LightState
 }
 
 // Creates new instance of a Handler.
-func NewHandler(tc ikea.ITradfriClient, s IStorage) Handler {
+func NewHandler(tc ikea.ITradfriClient, s ...IStorage) Handler {
 	return Handler{
 		tc: tc,
 		s:  s,
@@ -32,23 +34,23 @@ func NewHandler(tc ikea.ITradfriClient, s IStorage) Handler {
 func (h *Handler) PollAndSaveDevicesState() {
 	groupIds, err := h.tc.GetGroupIds()
 	if err != nil {
-		log.WithError(err).Error("Failed to get group IDs")
+		log.WithError(err).Error("Failed to get Group IDs")
 		return
 	}
 	for _, groupId := range groupIds {
 		group, err := h.tc.GetGroup(strconv.Itoa(groupId))
 		if err != nil {
 			log.WithError(err).
-				WithField("group ID", groupId).
-				Error("Failed to get group")
+				WithField("Group ID", groupId).
+				Error("Failed to get Group")
 			return
 		}
 
 		devices, err := h.tc.GetGroupDevices(group)
 		if err != nil {
 			log.WithError(err).
-				WithField("group ID", groupId).
-				Error("Failed to get group devices")
+				WithField("Group ID", groupId).
+				Error("Failed to get Group devices")
 			return
 		}
 
@@ -56,7 +58,7 @@ func (h *Handler) PollAndSaveDevicesState() {
 		for _, d := range devices {
 			if len(d.LightControl) > 0 {
 				lc := d.LightControl[0]
-				ls := LightState{lc.Power, lc.Dimmer, lc.RGBHex, group.Name}
+				ls := LightState{lc.Power, lc.Dimmer, lc.RGBHex, group.Name, time.Now()}
 				l = append(l, ls)
 			}
 		}
@@ -72,12 +74,14 @@ func (h *Handler) PollAndSaveDevicesState() {
 }
 
 func (h *Handler) persistStateChange(l []LightState) {
-	h.s.SaveGroupState(l)
+	for _, storage := range h.s {
+		storage.SaveGroupState(l)
+	}
 }
 
 func (h *Handler) equal(l1, l2 []LightState) bool {
-	for i, v := range l1 {
-		if v != l2[i] {
+	for i, l := range l1 {
+		if l.Power != l2[i].Power || l.RGB != l2[i].RGB || l.Dimmer != l2[i].Dimmer {
 			return false
 		}
 	}
