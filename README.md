@@ -7,10 +7,11 @@ Gathers statistics about the state of IKEA smart bulbs.
 IKEA_GW_IP
 IKEA_GW_PSK
 IKEA_DB_PATH
+GOOGLE_APPLICATION_CREDENTIALS
 ```
 
 ### DB schema initialization
-Uses SQLite DB.
+Uses Firebase storage and local SQLite DB.
 ```
 CREATE TABLE event (
     id           INTEGER      PRIMARY KEY AUTOINCREMENT,
