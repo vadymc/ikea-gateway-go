@@ -1,8 +1,11 @@
 package gateway_handler
 
 import (
+	"context"
 	"database/sql"
 	"os"
+	"sync"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
@@ -15,7 +18,7 @@ const (
 )
 
 type IStorage interface {
-	SaveGroupState(l []LightState)
+	SaveGroupState(ctx context.Context, l []LightState, wg *sync.WaitGroup)
 }
 
 type DBStorage struct {
@@ -53,16 +56,21 @@ func (s *DBStorage) init() {
 	s.insertStatDataStmt = stmt
 }
 
-func (s *DBStorage) SaveGroupState(lightGroup []LightState) {
+func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState, wg *sync.WaitGroup) {
+	start := time.Now()
+	defer func() {
+		wg.Done()
+		log.WithField("SaveGroupState", "sql storage").WithField("elapsed time", time.Since(start)).Info("Done")
+	}()
 	err := s.withTransaction(func() error {
-		r, err := s.insertEventStmt.Exec()
+		r, err := s.insertEventStmt.ExecContext(ctx)
 		if err != nil {
 			log.WithError(err).WithField("lightGroup", lightGroup).Fatal("Failed to insert r")
 			return err
 		}
 		eventId, _ := r.LastInsertId()
 		for _, ls := range lightGroup {
-			_, err := s.insertStatDataStmt.Exec(eventId, ls.Group, ls.Power, ls.Dimmer, ls.RGB, ls.Date)
+			_, err := s.insertStatDataStmt.ExecContext(ctx, eventId, ls.Group, ls.Power, ls.Dimmer, ls.RGB, ls.Date)
 			if err != nil {
 				log.WithError(err).WithField("LightState", ls).Fatal("Failed to insert stat_data")
 				return err

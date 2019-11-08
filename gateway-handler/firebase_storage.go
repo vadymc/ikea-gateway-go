@@ -2,6 +2,8 @@ package gateway_handler
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	log "github.com/sirupsen/logrus"
@@ -23,9 +25,13 @@ func NewFirebaseStorage() *FirebaseStorage {
 	return &s
 }
 
-func (s *FirebaseStorage) SaveGroupState(lightGroup []LightState) {
-	r, _, err := s.statDataCollection.Add(context.Background(), map[string][]LightState{"lightState": lightGroup})
-	log.WithField("Document ID", r.ID).Info("Stored update to firebase")
+func (s *FirebaseStorage) SaveGroupState(ctx context.Context, lightGroup []LightState, wg *sync.WaitGroup) {
+	start := time.Now()
+	defer func() {
+		wg.Done()
+		log.WithField("SaveGroupState", "firebase storage").WithField("elapsed time", time.Since(start)).Info("Done")
+	}()
+	_, _, err := s.statDataCollection.Add(ctx, map[string][]LightState{"lightState": lightGroup})
 	if err != nil {
 		log.WithError(err).WithField("light Group", lightGroup).Error("Failed to insert document")
 	}

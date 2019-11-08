@@ -1,7 +1,9 @@
 package gateway_handler
 
 import (
+	"context"
 	"strconv"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -74,9 +76,28 @@ func (h *Handler) PollAndSaveDevicesState() {
 }
 
 func (h *Handler) persistStateChange(l []LightState) {
+	timeout := time.Duration(4 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	var wg sync.WaitGroup
+
 	for _, storage := range h.s {
-		storage.SaveGroupState(l)
+		wg.Add(1)
+		go storage.SaveGroupState(ctx, l, &wg)
 	}
+
+	go func() {
+		wg.Wait()
+		cancel()
+	}()
+
+	select {
+	case <-ctx.Done():
+		log.WithField("LightState", l).Info("Successfully saved")
+	case t := <-time.After(timeout):
+		cancel()
+		log.WithField("LightState", l).WithField("timeout", t).Warn("Timeout in persistStateChange")
+	}
+
 }
 
 func (h *Handler) equal(l1, l2 []LightState) bool {
