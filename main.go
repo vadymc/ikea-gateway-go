@@ -33,7 +33,7 @@ func main() {
 	dbStorage := gw.NewDBStorage()
 	firebaseStorage := gw.NewFirebaseStorage()
 	h := gw.NewHandler(tc, dbStorage, firebaseStorage)
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		for {
 			select {
