@@ -65,21 +65,21 @@ func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState,
 	err := s.withTransaction(func() error {
 		r, err := s.insertEventStmt.ExecContext(ctx)
 		if err != nil {
-			log.WithError(err).WithField("lightGroup", lightGroup).Fatal("Failed to insert r")
+			log.WithError(err).WithField("lightGroup", lightGroup).Error("Failed to insert r")
 			return err
 		}
 		eventId, _ := r.LastInsertId()
 		for _, ls := range lightGroup {
 			_, err := s.insertStatDataStmt.ExecContext(ctx, eventId, ls.Group, ls.Power, ls.Dimmer, ls.RGB, ls.Date)
 			if err != nil {
-				log.WithError(err).WithField("LightState", ls).Fatal("Failed to insert stat_data")
+				log.WithError(err).WithField("LightState", ls).Error("Failed to insert stat_data")
 				return err
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		log.WithError(err).WithField("lightGroup", lightGroup).Fatal("Failed to SaveGroupState")
+		log.WithError(err).WithField("lightGroup", lightGroup).Error("Failed to SaveGroupState")
 	}
 }
 
