@@ -115,6 +115,17 @@ func (tc *TradfriClient) GetDevice(id string) (model.Device, error) {
 	return *device, nil
 }
 
+func (tc *TradfriClient) RebootGateway() {
+	_, err := tc.Call(tc.dtlsClient.BuildPOSTMessage("/15011/9030", ""))
+	if err != nil {
+		errText := "Failed to reboot gateway"
+		tc.telegramClient.SendMessage("Ikea GW", errText)
+		log.WithError(err).Error(errText)
+		return
+	}
+	log.Info("Rebooted gateway")
+}
+
 func (tc *TradfriClient) AuthExchange(clientId string) (model.TokenExchange, error) {
 
 	req := tc.dtlsClient.BuildPOSTMessage("/15011/9063", fmt.Sprintf(`{"9090":"%s"}`, clientId))

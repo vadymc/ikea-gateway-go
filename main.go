@@ -9,6 +9,8 @@ import (
 
 	"github.com/vadymc/telegram-client-go/v2"
 
+	"github.com/robfig/cron/v3"
+
 	gw "github.com/vadymc/ikea-gateway-go/m/gateway-handler"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
 )
@@ -33,6 +35,7 @@ func main() {
 	}
 	telegramClient := telegram.NewTelegramClient()
 
+	// configure gateway state polling
 	tc := ikea.NewTradfriClient(gwAddr, clientID, psk, telegramClient)
 	dbStorage := gw.NewDBStorage()
 	firebaseStorage := gw.NewFirebaseStorage()
@@ -47,6 +50,11 @@ func main() {
 			}
 		}
 	}()
+
+	// configure cron jobs
+	cr := cron.New(cron.WithLocation(time.UTC))
+	cr.AddFunc("@midnight", func() { tc.RebootGateway() })
+	cr.Start()
 
 	telegramClient.SendMessage("Ikea GW", "Started Ikea Gateway")
 	wg := sync.WaitGroup{}
