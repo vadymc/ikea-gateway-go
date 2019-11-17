@@ -56,7 +56,7 @@ func main() {
 	cr.AddFunc("@midnight", func() { tc.RebootGateway() })
 	cr.Start()
 
-	telegramClient.SendMessage("Ikea GW", "Started Ikea Gateway")
+	go func() { telegramClient.SendMessage("Ikea GW", "Started Ikea Gateway") }()
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	wg.Wait()

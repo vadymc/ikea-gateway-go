@@ -119,7 +119,7 @@ func (tc *TradfriClient) RebootGateway() {
 	_, err := tc.Call(tc.dtlsClient.BuildPOSTMessage("/15011/9030", ""))
 	if err != nil {
 		errText := "Failed to reboot gateway"
-		tc.telegramClient.SendMessage("Ikea GW", errText)
+		go func() { tc.telegramClient.SendMessage("Ikea GW", errText) }()
 		log.WithError(err).Error(errText)
 		return
 	}
