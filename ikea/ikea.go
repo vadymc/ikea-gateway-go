@@ -2,7 +2,6 @@ package ikea
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -58,7 +57,6 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 	groupIds := make([]int, 0)
 
 	resp, err := tc.Call(tc.dtlsClient.BuildGETMessage("/15004"))
-	err = errors.New("test failure")
 	if err != nil {
 		if errorCount >= errorThreshold {
 			log.WithError(err).WithField("Error threshold", errorThreshold).Error("Failed to call Trådfri, stopping application")
