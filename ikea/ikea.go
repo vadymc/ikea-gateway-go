@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/vadymc/ikea-gateway-go/m/ikea/coap"
+	"github.com/vadymc/ikea-gateway-go/m/telegram"
 )
 
 type ITradfriClient interface {
@@ -20,19 +21,21 @@ type ITradfriClient interface {
 }
 
 type TradfriClient struct {
-	dtlsclient *coap.DtlsClient
+	dtlsClient     *coap.DtlsClient
+	telegramClient *telegram.TelegramClient
 }
 
 var (
-	errorCount    int
-	errorTreshold = 5
+	errorCount     int
+	errorThreshold = 5
 )
 
 // Creates an instance of TradfriClient.
 // Based on https://github.com/eriklupander/tradfri-go/blob/master/tradfri/tradfri-client.go
 func NewTradfriClient(gatewayAddress, clientID, psk string) *TradfriClient {
 	client := &TradfriClient{}
-	client.dtlsclient = coap.NewDtlsClient(gatewayAddress, clientID, psk)
+	client.dtlsClient = coap.NewDtlsClient(gatewayAddress, clientID, psk)
+	client.telegramClient = telegram.NewTelegramClient()
 	return client
 }
 
@@ -53,10 +56,11 @@ func (tc *TradfriClient) ListGroups() ([]model.Group, error) {
 func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 	groupIds := make([]int, 0)
 
-	resp, err := tc.Call(tc.dtlsclient.BuildGETMessage("/15004"))
+	resp, err := tc.Call(tc.dtlsClient.BuildGETMessage("/15004"))
 	if err != nil {
-		if errorCount > errorTreshold {
-			log.WithError(err).WithField("Error treshold", errorTreshold).Error("Failed to call Trådfri, stopping application")
+		if errorCount > errorThreshold {
+			log.WithError(err).WithField("Error threshold", errorThreshold).Error("Failed to call Trådfri, stopping application")
+			tc.telegramClient.SendMessage(fmt.Sprintf("Failed to call Trådfri, stopping application. Retried %v times. Error [%v]", errorCount, err.Error()))
 			os.Exit(1)
 		}
 		errorCount++
@@ -69,7 +73,7 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 }
 
 func (tc *TradfriClient) GetGroup(id string) (model.Group, error) {
-	resp, err := tc.Call(tc.dtlsclient.BuildGETMessage("/15004/" + id))
+	resp, err := tc.Call(tc.dtlsClient.BuildGETMessage("/15004/" + id))
 	group := &model.Group{}
 	if err != nil {
 		return *group, err
@@ -97,7 +101,7 @@ func (tc *TradfriClient) GetGroupDevices(group model.Group) ([]model.Device, err
 func (tc *TradfriClient) GetDevice(id string) (model.Device, error) {
 	device := &model.Device{}
 
-	resp, err := tc.Call(tc.dtlsclient.BuildGETMessage("/15001/" + id))
+	resp, err := tc.Call(tc.dtlsClient.BuildGETMessage("/15001/" + id))
 	if err != nil {
 		return *device, err
 	}
@@ -110,7 +114,7 @@ func (tc *TradfriClient) GetDevice(id string) (model.Device, error) {
 
 func (tc *TradfriClient) AuthExchange(clientId string) (model.TokenExchange, error) {
 
-	req := tc.dtlsclient.BuildPOSTMessage("/15011/9063", fmt.Sprintf(`{"9090":"%s"}`, clientId))
+	req := tc.dtlsClient.BuildPOSTMessage("/15011/9063", fmt.Sprintf(`{"9090":"%s"}`, clientId))
 
 	// Send CoAP message for token exchange
 	resp, _ := tc.Call(req)
@@ -126,5 +130,5 @@ func (tc *TradfriClient) AuthExchange(clientId string) (model.TokenExchange, err
 
 // A proxy to the underlying DtlsClient Call.
 func (tc *TradfriClient) Call(msg gocoap.Message) (gocoap.Message, error) {
-	return tc.dtlsclient.Call(msg)
+	return tc.dtlsClient.Call(msg)
 }
