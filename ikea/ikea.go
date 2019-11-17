@@ -9,9 +9,9 @@ import (
 	gocoap "github.com/dustin/go-coap"
 	"github.com/eriklupander/tradfri-go/model"
 	log "github.com/sirupsen/logrus"
+	"github.com/vadymc/telegram-client-go/v2"
 
 	"github.com/vadymc/ikea-gateway-go/m/ikea/coap"
-	"github.com/vadymc/ikea-gateway-go/m/telegram"
 )
 
 type ITradfriClient interface {
@@ -60,12 +60,15 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 	if err != nil {
 		if errorCount >= errorThreshold {
 			log.WithError(err).WithField("Error threshold", errorThreshold).Error("Failed to call Trådfri, stopping application")
-			tc.telegramClient.SendMessage(fmt.Sprintf("Failed to call Trådfri, stopping application. Retried %v times. Error [%v]", errorCount, err.Error()))
+			body := fmt.Sprintf("Failed to call Trådfri, stopping application. Retried %v times. Error [%v]", errorCount, err.Error())
+			tc.telegramClient.SendMessage("Ikea GW", body)
 			os.Exit(1)
 		}
 		errorCount++
 		log.WithError(err).Error("Unable to call Trådfri")
 		return groupIds, err
+	} else if errorCount != 0 {
+		errorCount = 0
 	}
 
 	err = json.Unmarshal(resp.Payload, &groupIds)

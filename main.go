@@ -7,9 +7,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/vadymc/telegram-client-go/v2"
+
 	gw "github.com/vadymc/ikea-gateway-go/m/gateway-handler"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
-	"github.com/vadymc/ikea-gateway-go/m/telegram"
 )
 
 const (
@@ -47,7 +48,7 @@ func main() {
 		}
 	}()
 
-	telegramClient.SendMessage("Started Ikea Gateway")
+	telegramClient.SendMessage("Ikea GW", "Started Ikea Gateway")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	wg.Wait()
