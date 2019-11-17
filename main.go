@@ -6,8 +6,10 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
 	gw "github.com/vadymc/ikea-gateway-go/m/gateway-handler"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
+	"github.com/vadymc/ikea-gateway-go/m/telegram"
 )
 
 const (
@@ -28,13 +30,15 @@ func main() {
 		authenticate(gwAddr, clientID, securityCode)
 		os.Exit(1)
 	}
+	telegramClient := telegram.NewTelegramClient()
 
-	tc := ikea.NewTradfriClient(gwAddr, clientID, psk)
+	tc := ikea.NewTradfriClient(gwAddr, clientID, psk, telegramClient)
 	dbStorage := gw.NewDBStorage()
 	firebaseStorage := gw.NewFirebaseStorage()
 	h := gw.NewHandler(tc, dbStorage, firebaseStorage)
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
+		h.PollAndSaveDevicesState()
 		for {
 			select {
 			case <-ticker.C:
@@ -43,6 +47,7 @@ func main() {
 		}
 	}()
 
+	telegramClient.SendMessage("Started Ikea Gateway")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	wg.Wait()
@@ -66,7 +71,7 @@ func authenticate(gatewayAddress, clientID, psk string) {
 
 	// Note that we hard-code "Client_identity" here before creating the DTLS client,
 	// required when performing token exchange
-	dtlsClient := ikea.NewTradfriClient(gatewayAddress, "Client_identity", psk)
+	dtlsClient := ikea.NewTradfriClient(gatewayAddress, "Client_identity", psk, nil)
 
 	authToken, err := dtlsClient.AuthExchange(clientID)
 	if err != nil {

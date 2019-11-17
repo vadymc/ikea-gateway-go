@@ -2,6 +2,7 @@ package ikea
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -32,10 +33,10 @@ var (
 
 // Creates an instance of TradfriClient.
 // Based on https://github.com/eriklupander/tradfri-go/blob/master/tradfri/tradfri-client.go
-func NewTradfriClient(gatewayAddress, clientID, psk string) *TradfriClient {
+func NewTradfriClient(gatewayAddress, clientID, psk string, telegramClient *telegram.TelegramClient) *TradfriClient {
 	client := &TradfriClient{}
 	client.dtlsClient = coap.NewDtlsClient(gatewayAddress, clientID, psk)
-	client.telegramClient = telegram.NewTelegramClient()
+	client.telegramClient = telegramClient
 	return client
 }
 
@@ -57,8 +58,9 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 	groupIds := make([]int, 0)
 
 	resp, err := tc.Call(tc.dtlsClient.BuildGETMessage("/15004"))
+	err = errors.New("test failure")
 	if err != nil {
-		if errorCount > errorThreshold {
+		if errorCount >= errorThreshold {
 			log.WithError(err).WithField("Error threshold", errorThreshold).Error("Failed to call Trådfri, stopping application")
 			tc.telegramClient.SendMessage(fmt.Sprintf("Failed to call Trådfri, stopping application. Retried %v times. Error [%v]", errorCount, err.Error()))
 			os.Exit(1)
