@@ -3,12 +3,14 @@ package ikea
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 
 	gocoap "github.com/dustin/go-coap"
 	"github.com/eriklupander/tradfri-go/model"
-	"github.com/vadymc/ikea-gateway-go/m/ikea/coap"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/vadymc/ikea-gateway-go/m/ikea/coap"
 )
 
 type ITradfriClient interface {
@@ -20,6 +22,11 @@ type ITradfriClient interface {
 type TradfriClient struct {
 	dtlsclient *coap.DtlsClient
 }
+
+var (
+	errorCount    int
+	errorTreshold = 5
+)
 
 // Creates an instance of TradfriClient.
 // Based on https://github.com/eriklupander/tradfri-go/blob/master/tradfri/tradfri-client.go
@@ -48,6 +55,11 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 
 	resp, err := tc.Call(tc.dtlsclient.BuildGETMessage("/15004"))
 	if err != nil {
+		if errorCount > errorTreshold {
+			log.WithError(err).WithField("Error treshold", errorTreshold).Error("Failed to call Trådfri, stopping application")
+			os.Exit(1)
+		}
+		errorCount++
 		log.WithError(err).Error("Unable to call Trådfri")
 		return groupIds, err
 	}
