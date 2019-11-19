@@ -63,6 +63,8 @@ func (tc *TradfriClient) GetGroupIds() ([]int, error) {
 			body := fmt.Sprintf("Failed to call Trådfri, stopping application. Retried %v times. Error [%v]", errorCount, err.Error())
 			tc.telegramClient.SendMessage("Ikea GW", body)
 			os.Exit(1)
+		} else {
+			tc.dtlsClient.Connect()
 		}
 		errorCount++
 		log.WithError(err).Error("Unable to call Trådfri")

@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/dustin/go-coap"
 	"github.com/eriklupander/dtls"
+	log "github.com/sirupsen/logrus"
 )
 
 // DtlsClient provides an domain-agnostic CoAP-client with DTLS transport.
@@ -26,11 +26,11 @@ func NewDtlsClient(gatewayAddress, clientID, psk string) *DtlsClient {
 		clientID:       clientID,
 		psk:            psk,
 	}
-	client.connect()
+	client.Connect()
 	return client
 }
 
-func (dc *DtlsClient) connect() {
+func (dc *DtlsClient) Connect() {
 	dc.setupKeystore()
 
 	listener, err := dtls.NewUdpListener(":0", time.Second*900)
@@ -42,7 +42,7 @@ func (dc *DtlsClient) connect() {
 		Addr:             dc.gatewayAddress,
 		Identity:         dc.clientID,
 		HandshakeTimeout: time.Second * 15}
-		log.WithField("GW address", dc.gatewayAddress).Info("Connecting to peer")
+	log.WithField("GW address", dc.gatewayAddress).Info("Connecting to peer")
 
 	dc.peer, err = listener.AddPeerWithParams(peerParams)
 	if err != nil {
