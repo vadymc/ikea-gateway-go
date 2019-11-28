@@ -1,4 +1,4 @@
-package handler
+package sql
 
 import (
 	"context"
@@ -25,6 +25,14 @@ type DBStorage struct {
 	db                 *sql.DB
 	insertEventStmt    *sql.Stmt
 	insertStatDataStmt *sql.Stmt
+}
+
+type LightState struct {
+	Power  int
+	Dimmer int
+	RGB    string
+	Group  string
+	Date   time.Time
 }
 
 func NewDBStorage() *DBStorage {

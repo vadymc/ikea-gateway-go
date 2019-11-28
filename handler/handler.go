@@ -7,29 +7,23 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/vadymc/ikea-gateway-go/m/ikea"
-)
 
-type LightState struct {
-	Power  int
-	Dimmer int
-	RGB    string
-	Group  string
-	Date   time.Time
-}
+	"github.com/vadymc/ikea-gateway-go/m/ikea"
+	"github.com/vadymc/ikea-gateway-go/m/sql"
+)
 
 type Handler struct {
 	tc ikea.ITradfriClient
-	s  []IStorage
-	m  map[string][]LightState
+	s  []sql.IStorage
+	m  map[string][]sql.LightState
 }
 
 // Creates new instance of a Handler.
-func NewHandler(tc ikea.ITradfriClient, s ...IStorage) Handler {
+func NewHandler(tc ikea.ITradfriClient, s ...sql.IStorage) Handler {
 	return Handler{
 		tc: tc,
 		s:  s,
-		m:  make(map[string][]LightState),
+		m:  make(map[string][]sql.LightState),
 	}
 }
 
@@ -56,11 +50,11 @@ func (h *Handler) PollAndSaveDevicesState() {
 			return
 		}
 
-		var l []LightState
+		var l []sql.LightState
 		for _, d := range devices {
 			if len(d.LightControl) > 0 {
 				lc := d.LightControl[0]
-				ls := LightState{lc.Power, lc.Dimmer, lc.RGBHex, group.Name, time.Now()}
+				ls := sql.LightState{lc.Power, lc.Dimmer, lc.RGBHex, group.Name, time.Now()}
 				l = append(l, ls)
 			}
 		}
@@ -75,7 +69,7 @@ func (h *Handler) PollAndSaveDevicesState() {
 	}
 }
 
-func (h *Handler) persistStateChange(l []LightState) {
+func (h *Handler) persistStateChange(l []sql.LightState) {
 	timeout := time.Duration(4 * time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	var wg sync.WaitGroup
@@ -100,7 +94,7 @@ func (h *Handler) persistStateChange(l []LightState) {
 
 }
 
-func (h *Handler) equal(l1, l2 []LightState) bool {
+func (h *Handler) equal(l1, l2 []sql.LightState) bool {
 	for i, l := range l1 {
 		if l.Power != l2[i].Power || l.RGB != l2[i].RGB || l.Dimmer != l2[i].Dimmer {
 			return false

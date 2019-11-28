@@ -37,7 +37,7 @@ func main() {
 
 	// configure gateway state polling
 	tc := ikea.NewTradfriClient(gwAddr, clientID, psk, telegramClient)
-	dbStorage := gw.NewDBStorage()
+	dbStorage := sql.NewDBStorage()
 	h := gw.NewHandler(tc, dbStorage)
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {

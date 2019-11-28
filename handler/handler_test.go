@@ -3,10 +3,14 @@ package handler
 import (
 	"encoding/json"
 	"io/ioutil"
+	"sync"
 	"testing"
 
 	"github.com/eriklupander/tradfri-go/model"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
+
+	"github.com/vadymc/ikea-gateway-go/m/sql"
 )
 
 type MockTradfriClient struct {
@@ -32,7 +36,7 @@ type MockDBStorage struct {
 	invocationCount int
 }
 
-func (s *MockDBStorage) SaveGroupState(l []LightState) {
+func (s *MockDBStorage) SaveGroupState(ctx context.Context, l []sql.LightState, wg *sync.WaitGroup) {
 	s.invocationCount++
 }
 

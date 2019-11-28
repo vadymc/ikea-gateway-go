@@ -18,6 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.2.2
 	github.com/vadymc/telegram-client-go/v2 v2.0.5
+	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 	golang.org/x/sys v0.0.0-20191115151921-52ab43148777 // indirect
 	gonum.org/v1/gonum v0.6.1
 	gonum.org/v1/plot v0.0.0-20190515093506-e2840ee46a6b
