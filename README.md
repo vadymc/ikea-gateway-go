@@ -11,7 +11,7 @@ GOOGLE_APPLICATION_CREDENTIALS
 ```
 
 ### DB schema initialization
-Uses Firebase storage and local SQLite DB.
+Uses local SQLite DB.
 ```
 CREATE TABLE event (
     id           INTEGER      PRIMARY KEY AUTOINCREMENT,

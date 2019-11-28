@@ -38,8 +38,7 @@ func main() {
 	// configure gateway state polling
 	tc := ikea.NewTradfriClient(gwAddr, clientID, psk, telegramClient)
 	dbStorage := gw.NewDBStorage()
-	firebaseStorage := gw.NewFirebaseStorage()
-	h := gw.NewHandler(tc, dbStorage, firebaseStorage)
+	h := gw.NewHandler(tc, dbStorage)
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		h.PollAndSaveDevicesState()
