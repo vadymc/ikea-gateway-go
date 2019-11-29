@@ -29,4 +29,16 @@ CREATE TABLE stat_data (
     date_created DATETIME     NOT NULL
                               DEFAULT (CURRENT_TIMESTAMP) 
 );
+create index ix_date_created on stat_data (date_created);
+
+create table quantile_group
+(
+	id INTEGER
+		constraint quantile_group_pk
+			primary key autoincrement,
+	group_name VARCHAR (40) not null,
+	bucket_index INTEGER not null,
+	bucket_value INTEGER not null
+);
+create index ix_group_name_bucket_idx on quantile_group(group_name, bucket_index);
 ```

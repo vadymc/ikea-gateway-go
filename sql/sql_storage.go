@@ -12,19 +12,26 @@ import (
 )
 
 const (
-	dbPath            = "IKEA_DB_PATH"
-	insertEventSQL    = "insert into event default values"
-	insertStatDataSQL = "insert into stat_data (event_id, group_name, power, dimmer, rgb, date_created) values (?, ?, ?, ?, ?, ?)"
+	dbPath                   = "IKEA_DB_PATH"
+	insertEventSQL           = "insert into event default values"
+	insertStatDataSQL        = "insert into stat_data (event_id, group_name, power, dimmer, rgb, date_created) values (?, ?, ?, ?, ?, ?)"
+	insertQuantileGroupSQL   = "insert into quantile_group (group_name, bucket_index, bucket_value) values (?, ?, ?)"
+	selectQuantileGroupIDSQL = "select id, bucket_value from quantile_group where group_name=? and bucket_index=?"
+	updateQuantileGroupIDSQL = "update quantile_group set bucket_value=? where id=?"
 )
 
 type IStorage interface {
 	SaveGroupState(ctx context.Context, l []LightState, wg *sync.WaitGroup)
+	SaveQuantileGroup(ctx context.Context, g *QuantileGroup)
 }
 
 type DBStorage struct {
-	db                 *sql.DB
-	insertEventStmt    *sql.Stmt
-	insertStatDataStmt *sql.Stmt
+	db                        *sql.DB
+	insertEventStmt           *sql.Stmt
+	insertStatDataStmt        *sql.Stmt
+	insertQuantileGroupStmt   *sql.Stmt
+	selectQuantileGroupIDStmt *sql.Stmt
+	updateQuantileGroupIDStmt *sql.Stmt
 }
 
 type LightState struct {
@@ -33,6 +40,12 @@ type LightState struct {
 	RGB    string
 	Group  string
 	Date   time.Time
+}
+
+type QuantileGroup struct {
+	Name        string
+	BucketIndex int
+	BucketVal   int
 }
 
 func NewDBStorage() *DBStorage {
@@ -62,6 +75,27 @@ func (s *DBStorage) init() {
 		return
 	}
 	s.insertStatDataStmt = stmt
+
+	stmt, err = db.Prepare(insertQuantileGroupSQL)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to prepare insert quantile_group statement")
+		return
+	}
+	s.insertQuantileGroupStmt = stmt
+
+	stmt, err = db.Prepare(selectQuantileGroupIDSQL)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to prepare select quantile_group statement")
+		return
+	}
+	s.selectQuantileGroupIDStmt = stmt
+
+	stmt, err = db.Prepare(updateQuantileGroupIDSQL)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to prepare update quantile_group statement")
+		return
+	}
+	s.updateQuantileGroupIDStmt = stmt
 }
 
 func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState, wg *sync.WaitGroup) {
@@ -88,6 +122,28 @@ func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState,
 	})
 	if err != nil {
 		log.WithError(err).WithField("lightGroup", lightGroup).Error("Failed to SaveGroupState")
+	}
+}
+
+func (s *DBStorage) SaveQuantileGroup(ctx context.Context, g *QuantileGroup) {
+	var id int64
+	var val int
+	row := s.selectQuantileGroupIDStmt.QueryRowContext(ctx, g.Name, g.BucketIndex)
+	row.Scan(&id, &val)
+	if id != 0 && val == g.BucketVal { // value exists and did not change
+		return
+	} else if id != 0 { // value exists and has to be updated
+		_, err := s.updateQuantileGroupIDStmt.ExecContext(ctx, g.BucketVal, id)
+		if err != nil {
+			log.WithError(err).WithField("QuantileGroup", &g).Error("Failed to update quantile_group")
+		}
+		log.WithFields(log.Fields{"g": g.Name, "i": g.BucketIndex, "old v": val, "new v": g.BucketVal}).Info("Updated QuantileGroup")
+	} else { // value does not exist
+		_, err := s.insertQuantileGroupStmt.ExecContext(ctx, g.Name, g.BucketIndex, g.BucketVal)
+		if err != nil {
+			log.WithError(err).WithField("QuantileGroup", &g).Error("Failed to insert quantile_group")
+		}
+		log.WithFields(log.Fields{"g": g.Name, "i": g.BucketIndex, "v": g.BucketVal}).Info("Inserted QuantileGroup")
 	}
 }
 
