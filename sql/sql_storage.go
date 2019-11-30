@@ -18,11 +18,15 @@ const (
 	insertQuantileGroupSQL   = "insert into quantile_group (group_name, bucket_index, bucket_value) values (?, ?, ?)"
 	selectQuantileGroupIDSQL = "select id, bucket_value from quantile_group where group_name=? and bucket_index=?"
 	updateQuantileGroupIDSQL = "update quantile_group set bucket_value=? where id=?"
+	selectRawEvents          = `SELECT distinct(e.id), e.date_created, group_name, dimmer
+								FROM event e join stat_data sd on e.id = sd.event_id
+								where e.date_created > ?
+								order by e.id desc`
 )
 
 type IStorage interface {
 	SaveGroupState(ctx context.Context, l []LightState, wg *sync.WaitGroup)
-	SaveQuantileGroup(ctx context.Context, g *QuantileGroup)
+	SaveQuantileGroup(g *QuantileGroup)
 }
 
 type DBStorage struct {
@@ -32,6 +36,7 @@ type DBStorage struct {
 	insertQuantileGroupStmt   *sql.Stmt
 	selectQuantileGroupIDStmt *sql.Stmt
 	updateQuantileGroupIDStmt *sql.Stmt
+	selectRawDataStmt         *sql.Stmt
 }
 
 type LightState struct {
@@ -46,6 +51,12 @@ type QuantileGroup struct {
 	Name        string
 	BucketIndex int
 	BucketVal   int
+}
+
+type StatRow struct {
+	Date      string
+	GroupName string
+	Dimmer    int
 }
 
 func NewDBStorage() *DBStorage {
@@ -96,6 +107,13 @@ func (s *DBStorage) init() {
 		return
 	}
 	s.updateQuantileGroupIDStmt = stmt
+
+	stmt, err = db.Prepare(selectRawEvents)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to prepare select raw events statement")
+		return
+	}
+	s.selectRawDataStmt = stmt
 }
 
 func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState, wg *sync.WaitGroup) {
@@ -125,26 +143,48 @@ func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState,
 	}
 }
 
-func (s *DBStorage) SaveQuantileGroup(ctx context.Context, g *QuantileGroup) {
+func (s *DBStorage) SaveQuantileGroup(g *QuantileGroup) {
 	var id int64
 	var val int
-	row := s.selectQuantileGroupIDStmt.QueryRowContext(ctx, g.Name, g.BucketIndex)
+	row := s.selectQuantileGroupIDStmt.QueryRow(g.Name, g.BucketIndex)
 	row.Scan(&id, &val)
 	if id != 0 && val == g.BucketVal { // value exists and did not change
 		return
 	} else if id != 0 { // value exists and has to be updated
-		_, err := s.updateQuantileGroupIDStmt.ExecContext(ctx, g.BucketVal, id)
+		_, err := s.updateQuantileGroupIDStmt.Exec(g.BucketVal, id)
 		if err != nil {
 			log.WithError(err).WithField("QuantileGroup", &g).Error("Failed to update quantile_group")
 		}
 		log.WithFields(log.Fields{"g": g.Name, "i": g.BucketIndex, "old v": val, "new v": g.BucketVal}).Info("Updated QuantileGroup")
 	} else { // value does not exist
-		_, err := s.insertQuantileGroupStmt.ExecContext(ctx, g.Name, g.BucketIndex, g.BucketVal)
+		_, err := s.insertQuantileGroupStmt.Exec(g.Name, g.BucketIndex, g.BucketVal)
 		if err != nil {
 			log.WithError(err).WithField("QuantileGroup", &g).Error("Failed to insert quantile_group")
 		}
 		log.WithFields(log.Fields{"g": g.Name, "i": g.BucketIndex, "v": g.BucketVal}).Info("Inserted QuantileGroup")
 	}
+}
+
+func (s *DBStorage) SelectRawData(startTime time.Time) *[]StatRow {
+	rows, err := s.selectRawDataStmt.Query(startTime)
+	if err != nil {
+		log.WithError(err).Error("Failed to select raw data")
+	}
+	defer rows.Close()
+	result := &[]StatRow{}
+	for rows.Next() {
+		var id int64
+		var date string
+		var name string
+		var dimmer int
+		err = rows.Scan(&id, &date, &name, &dimmer)
+		if err != nil {
+			log.WithError(err).Error("Failed to extract row")
+			continue
+		}
+		*result = append(*result, StatRow{date, name, dimmer})
+	}
+	return result
 }
 
 func (s *DBStorage) withTransaction(f func() error) error {

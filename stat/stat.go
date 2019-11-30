@@ -2,7 +2,6 @@ package stat
 
 import (
 	"bufio"
-	"context"
 	"encoding/csv"
 	"image/color"
 	"io"
@@ -43,42 +42,28 @@ func (p intSlice) Less(i, j int) bool { return p[i] < p[j] }
 func (p intSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func CalcQuantiles(db *sql.DBStorage) {
-	dimmerFile, err := os.Open(dataPath)
-	if err != nil {
-		log.WithError(err).Error("Failed to open file")
-		return
-	}
-	defer dimmerFile.Close()
-	r := csv.NewReader(bufio.NewReader(dimmerFile))
+	startData := time.Now().AddDate(0, 0, -14)
+	rawData := db.SelectRawData(startData)
 
 	data := make(map[string]Group)
-	for {
-		// Read each record from csv
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		time, _ := strconv.ParseFloat(strings.Replace(record[1], ":", "", -1), 64)
-		groupName := record[2]
-		dimmerVal, _ := strconv.Atoi(record[3])
-		timeKey := int(time / 10000)
-
-		if _, ok := data[groupName]; !ok {
-			data[groupName] = Group{
-				Name: groupName,
+	for _, rd := range *rawData {
+		if _, ok := data[rd.GroupName]; !ok {
+			data[rd.GroupName] = Group{
+				Name: rd.GroupName,
 				Data: &map[int]Value{},
 			}
 		}
-		group := data[groupName]
+
+		time, _ := strconv.ParseFloat(normalizeDateString(rd.Date), 64)
+		timeKey := int(time / 10000)
+
+		group := data[rd.GroupName]
 		groupData := group.Data
 		if _, ok := (*groupData)[timeKey]; !ok {
 			(*groupData)[timeKey] = Value{Val: &[]int{}}
 		}
 		groupDataVals := (*groupData)[timeKey]
-		*groupDataVals.Val = append(*groupDataVals.Val, dimmerVal)
+		*groupDataVals.Val = append(*groupDataVals.Val, rd.Dimmer)
 	}
 	for _, lg := range data {
 		for hour, vals := range *lg.Data {
@@ -88,9 +73,17 @@ func CalcQuantiles(db *sql.DBStorage) {
 				BucketIndex: hour,
 				BucketVal:   percentile(*val, 85),
 			}
-			db.SaveQuantileGroup(context.TODO(), &dbGroup)
+			db.SaveQuantileGroup(&dbGroup)
 		}
 	}
+	log.Info("Recalculated Quantiles")
+}
+
+func normalizeDateString(date string) string {
+	s := strings.SplitAfter(date, "T")[1]
+	s = strings.Replace(s, ":", "", -1)
+	s = strings.Replace(s, "Z", "", -1)
+	return s
 }
 
 func percentile(values intSlice, perc float64) int {

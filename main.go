@@ -11,8 +11,10 @@ import (
 
 	"github.com/robfig/cron/v3"
 
-	gw "github.com/vadymc/ikea-gateway-go/m/gateway-handler"
+	gw "github.com/vadymc/ikea-gateway-go/m/handler"
 	"github.com/vadymc/ikea-gateway-go/m/ikea"
+	"github.com/vadymc/ikea-gateway-go/m/sql"
+	"github.com/vadymc/ikea-gateway-go/m/stat"
 )
 
 const (
@@ -53,6 +55,7 @@ func main() {
 	// configure cron jobs
 	cr := cron.New(cron.WithLocation(time.UTC))
 	cr.AddFunc("@midnight", func() { tc.RebootGateway() })
+	cr.AddFunc("30 0 * * *", func() { stat.CalcQuantiles(dbStorage) })
 	cr.Start()
 
 	go func() { telegramClient.SendMessage("Ikea GW", "Started Ikea Gateway") }()
