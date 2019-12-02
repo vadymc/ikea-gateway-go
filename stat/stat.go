@@ -26,6 +26,8 @@ const (
 	dataPath = "data/dimmer_data.csv"
 )
 
+var Cache = make(map[string]int)
+
 type Group struct {
 	Name string
 	Data *map[int]Value
@@ -54,8 +56,7 @@ func CalcQuantiles(db *sql.DBStorage) {
 			}
 		}
 
-		time, _ := strconv.ParseFloat(normalizeDateString(rd.Date), 64)
-		timeKey := int(time / 10000)
+		timeKey := getTimeBucketIndex(rd.Date)
 
 		group := data[rd.GroupName]
 		groupData := group.Data
@@ -74,12 +75,20 @@ func CalcQuantiles(db *sql.DBStorage) {
 				BucketVal:   percentile(*val, 85),
 			}
 			db.SaveQuantileGroup(&dbGroup)
+
+			cacheKey := lg.Name + strconv.Itoa(hour)
+			Cache[cacheKey] = dbGroup.BucketVal
 		}
 	}
 	log.Info("Recalculated Quantiles")
 }
 
-func normalizeDateString(date string) string {
+func getTimeBucketIndex(date string) int {
+	time, _ := strconv.ParseFloat(NormalizeDateString(date), 64)
+	return int(time / 10000)
+}
+
+func NormalizeDateString(date string) string {
 	s := strings.SplitAfter(date, "T")[1]
 	s = strings.Replace(s, ":", "", -1)
 	s = strings.Replace(s, "Z", "", -1)

@@ -41,7 +41,11 @@ func main() {
 	tc := ikea.NewTradfriClient(gwAddr, clientID, psk, telegramClient)
 	dbStorage := sql.NewDBStorage()
 	h := gw.NewHandler(tc, dbStorage)
-	ticker := time.NewTicker(1 * time.Minute)
+
+	// init
+	stat.CalcQuantiles(dbStorage)
+
+	ticker := time.NewTicker(10 * time.Second)
 	go func() {
 		h.PollAndSaveDevicesState()
 		for {

@@ -25,7 +25,7 @@ const (
 )
 
 type IStorage interface {
-	SaveGroupState(ctx context.Context, l []LightState, wg *sync.WaitGroup)
+	SaveGroupState(ctx context.Context, l []*LightState, wg *sync.WaitGroup)
 	SaveQuantileGroup(g *QuantileGroup)
 }
 
@@ -40,11 +40,12 @@ type DBStorage struct {
 }
 
 type LightState struct {
-	Power  int
-	Dimmer int
-	RGB    string
-	Group  string
-	Date   time.Time
+	Power    int
+	Dimmer   int
+	RGB      string
+	Group    string
+	Date     time.Time
+	DeviceId int
 }
 
 type QuantileGroup struct {
@@ -116,7 +117,7 @@ func (s *DBStorage) init() {
 	s.selectRawDataStmt = stmt
 }
 
-func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []LightState, wg *sync.WaitGroup) {
+func (s *DBStorage) SaveGroupState(ctx context.Context, lightGroup []*LightState, wg *sync.WaitGroup) {
 	start := time.Now()
 	defer func() {
 		wg.Done()

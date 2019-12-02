@@ -18,6 +18,7 @@ type ITradfriClient interface {
 	GetGroupIds() ([]int, error)
 	GetGroup(id string) (model.Group, error)
 	GetGroupDevices(group model.Group) ([]model.Device, error)
+	PutDeviceDimming(deviceId int, dimming int) (model.Result, error)
 }
 
 type TradfriClient struct {
@@ -126,6 +127,28 @@ func (tc *TradfriClient) RebootGateway() {
 		return
 	}
 	log.Info("Rebooted gateway")
+}
+
+func (tc *TradfriClient) PutDeviceDimming(deviceId int, dimming int) (model.Result, error) {
+	payload := fmt.Sprintf(`{ "3311": [{ "5851": %d }] }`, dimming)
+	deviceIdStr := strconv.Itoa(deviceId)
+	resp, err := tc.Call(tc.dtlsClient.BuildPUTMessage("/15001/"+deviceIdStr, payload))
+	if err != nil {
+		return model.Result{}, err
+	}
+	return model.Result{Msg: resp.Code.String()}, nil
+}
+
+func (tc *TradfriClient) PutDevicePower(deviceId int, power int) (model.Result, error) {
+	if !(power == 1 || power == 0) {
+		return model.Result{}, fmt.Errorf("Invalid value for setting power state, must be 1 or 0")
+	}
+	payload := fmt.Sprintf(`{ "3311": [{ "5850": %d }] }`, power)
+	resp, err := tc.Call(tc.dtlsClient.BuildPUTMessage("/15001/"+strconv.Itoa(deviceId), payload))
+	if err != nil {
+		return model.Result{}, err
+	}
+	return model.Result{Msg: resp.Code.String()}, nil
 }
 
 func (tc *TradfriClient) AuthExchange(clientId string) (model.TokenExchange, error) {
